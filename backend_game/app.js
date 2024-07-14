@@ -1,55 +1,51 @@
-const express = require("express");
-const http = require("http");
-const socketIo = require("socket.io");
-const cors = require("cors");
+import express from "express";
+import { createServer } from "http";
+import { Server } from "socket.io";
+import cors from "cors";
+import { selectImages } from "./services/select_images.js";
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server, {
-	cors: {
-		origin: "http://localhost:3000", // React app address
-		methods: ["GET", "POST"],
-	},
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000", // React app address
+    methods: ["GET", "POST"],
+  },
 });
 
 app.use(cors()); // Enable CORS
 
-let players = {
-    "1" : {"name" : "examplePlayer1"}, 
-    "2" : {"name" : "examplePlayer2"},
-    "3" : {"name" : "examplePlayer3"},
-    "4" : {"name" : "examplePlayer4"},
-    "5" : {"name" : "examplePlayer5"}
+let gameState = {
+  current_round: 0,
+  max_rounds: 5,
+  image_ids: [],
+  players: {
+    1: { name: "examplePlayer1" },
+    2: { name: "examplePlayer2" },
+    3: { name: "examplePlayer3" },
+    4: { name: "examplePlayer4" },
+    5: { name: "examplePlayer5" },
+  },
 };
 
-let gameState = {
-    "current_round" : 0,
-    "max_rounds" : 5,
-    "image_ids" : ["id1", "id2"]
-}
-
-function selectImages(){
-    // images have a userID and 
-    // get all ImageIds
-    // randomly select 5
-    // get corresponding user Ids
-}
+gameState.image_ids = selectImages(gameState.max_rounds, gameState.players);
 
 io.on("connection", (socket) => {
-	console.log("A user connected:", socket.id);
+  console.log("A user connected:", socket.id);
+  console.log(gameState);
 
-    socket.on("userInfo", (user) => {
-        players[socket.id] = user;
-        socket.emit("currentPlayers", players);
-    });
+  socket.on("userInfo", (user) => {
+    gameState.players[socket.id] = user;
+    socket.emit("currentPlayers", gameState.players);
+  });
 
-    socket.on("disconnect", () => {
-		delete players[socket.id];
-		io.emit("playerDisconnected", socket.id);
-		console.log("A user disconnected:", socket.id);
-	});
+  socket.on("disconnect", () => {
+    delete gameState.players[socket.id];
+    io.emit("playerDisconnected", socket.id);
+    console.log("A user disconnected:", socket.id);
+  });
 });
 
 server.listen(3002, () => {
-	console.log("Server is listening on port 3002");
+  console.log("Server is listening on port 3002");
 });
