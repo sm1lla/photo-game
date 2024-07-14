@@ -15,7 +15,7 @@ const io = new Server(server, {
 
 app.use(cors()); // Enable CORS
 
-let gameState = {
+const gameState = {
   current_round: 0,
   max_rounds: 5,
   image_ids: [],
@@ -28,7 +28,7 @@ let gameState = {
   },
 };
 
-gameState.image_ids = selectImages(gameState.max_rounds, gameState.players);
+gameState.image_ids = await selectImages(gameState.max_rounds, gameState.players);
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
@@ -37,6 +37,11 @@ io.on("connection", (socket) => {
   socket.on("userInfo", (user) => {
     gameState.players[socket.id] = user;
     socket.emit("currentPlayers", gameState.players);
+  });
+
+  socket.on("startGame", () => {
+    gameState.current_round = 1;
+    io.emit("gameStarted", gameState);
   });
 
   socket.on("disconnect", () => {
