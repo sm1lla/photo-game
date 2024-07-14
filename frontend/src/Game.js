@@ -12,8 +12,7 @@ function Game() {
   const [gameState, setGameState] = useState({
     current_round: 0,
     max_rounds: 0,
-    image_ids: [],
-    players: {},
+    image_file_names: [],
   });
 
   useEffect(() => {
@@ -25,11 +24,17 @@ function Game() {
       setPlayers(players);
     });
 
-    socket.on("gameStarted", async (gameState) => {
+    socket.on("gameStarted", async (gameInfo) => {
       // set gameState
-      setGameState(gameState);
+      setGameState((previousState) => ({
+        ...previousState,
+        max_rounds: gameInfo.max_rounds,
+        image_file_names: gameInfo.image_file_names,
+      }));
 
-      const newImage = await get_current_image(gameState.image_ids[gameState.current_round]);
+      const newImage = await get_current_image(
+        gameInfo.image_file_names[gameState.current_round]
+      );
       setImage(newImage);
     });
 
@@ -37,7 +42,7 @@ function Game() {
       socket.off("currentPlayers");
       socket.off("gameStarted");
     };
-  }, []);
+  }, [gameState]);
 
   const handleButtonClick = () => {
     socket.emit("startGame");
