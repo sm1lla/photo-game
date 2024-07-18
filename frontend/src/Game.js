@@ -6,6 +6,7 @@ import { get_current_image } from "./services/get_image";
 const socket = io("http://localhost:3002");
 const user = { name: "User" };
 
+
 function Game() {
   const [players, setPlayers] = useState({});
   const [image, setImage] = useState({});
@@ -14,6 +15,7 @@ function Game() {
     max_rounds: 0,
     image_file_names: [],
   });
+  const [voteSelected, setVoteSelected] = useState("");
 
   useEffect(() => {
     // handle socket events here
@@ -38,14 +40,23 @@ function Game() {
       setImage(newImage);
     });
 
+    socket.on("vote_response", (response) => {
+      if(response.answer === voteSelected)
+        console.log("Correct.", response.answer);
+      else 
+        console.log("Incorrect.", response.answer);
+    })
+
     return () => {
       socket.off("currentPlayers");
       socket.off("gameStarted");
+      socket.off("vote_response");
     };
-  }, [gameState]);
+  }, [gameState, voteSelected]);
 
-  const handleButtonClick = () => {
-    socket.emit("startGame");
+  const voteForPlayer = (player_name) => {
+    setVoteSelected(player_name);
+    socket.emit("vote", player_name);
   };
 
   return (
@@ -58,11 +69,14 @@ function Game() {
         )}
         <div className="button-container">
           {Object.values(players).map((player) => (
-            <button key={player.name} onClick={() => handleButtonClick()}>
+            <button key={player.name} onClick={() => voteForPlayer(player.name)}>
               {player.name}
             </button>
           ))}
         </div>
+        <button key={"start"} onClick={() => socket.emit("startGame")}>
+              {"START GAME!"}
+            </button>
       </header>
     </div>
   );
