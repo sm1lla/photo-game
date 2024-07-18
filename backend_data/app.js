@@ -36,16 +36,16 @@ async function loadImage(file_name) {
   return image;
 }
 
-async function get_image_ids_for_user_ids(user_ids) {
+async function get_image_data_for_user_ids(user_ids) {
   const collection = database.collection("test_photos");
 
   const query = { user: { $in: user_ids } };
   const options = {
-    projection: { filename: 1 },
+    projection: { filename: 1, user : 1 },
   };
   const cursor = await collection.find(query, options);
-  const image_ids = cursor.toArray();
-  return image_ids;
+  const image_data = cursor.toArray();
+  return image_data;
 }
 
 app.get("/api/images/:itemId", async (req, res) => {
@@ -64,7 +64,7 @@ app.get("/api/image_ids/:ids", async (req, res) => {
   const ids = req.params.ids;
   const idArray = ids.split(",");
 
-  get_image_ids_for_user_ids(idArray)
+  get_image_data_for_user_ids(idArray)
     .then((image_ids) => {
       res.status(200).json(image_ids);
     })

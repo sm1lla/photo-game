@@ -15,28 +15,53 @@ const io = new Server(server, {
 
 app.use(cors()); // Enable CORS
 
-let gameState = {
+const gameState = {
   current_round: 0,
   max_rounds: 5,
-  image_ids: [],
+  image_data: [], // Format:  {filename: "image_file.jpg", user: "examplePlayer1"}
   players: {
-    1: { name: "examplePlayer1" },
-    2: { name: "examplePlayer2" },
-    3: { name: "examplePlayer3" },
-    4: { name: "examplePlayer4" },
-    5: { name: "examplePlayer5" },
+    1: { name: "examplePlayer1", score: 0 },
+    2: { name: "examplePlayer2", score: 0 },
+    3: { name: "examplePlayer3", score: 0 },
+    4: { name: "examplePlayer4", score: 0 },
+    5: { name: "examplePlayer5", score: 0 },
   },
 };
 
-gameState.image_ids = selectImages(gameState.max_rounds, gameState.players);
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
   console.log(gameState);
 
   socket.on("userInfo", (user) => {
-    gameState.players[socket.id] = user;
+    gameState.players[socket.id] = { name: user.name, score : 0};
     socket.emit("currentPlayers", gameState.players);
+  });
+
+  socket.on("startGame", async () => {
+    gameState.current_round = 1;
+
+    // Select images for current round
+    gameState.image_data = await selectImages(
+      gameState.max_rounds,
+      gameState.players
+    );
+
+    const gameInfo = {
+      max_rounds: gameState.max_rounds,
+      image_file_names: gameState.image_data.map((element) => element.filename),
+    };
+    io.emit("gameStarted", gameInfo);
+  });
+
+  socket.on("vote", (user_id) => {
+    const correct_answer = gameState.image_data[gameState.current_round - 1]["user"];
+    const response = {answer : correct_answer};
+    
+    if(user_id == correct_answer) {
+      gameState.players[socket.id].score += 1;
+    }
+    io.emit("vote_response", response);
   });
 
   socket.on("disconnect", () => {

@@ -12,10 +12,7 @@ export async function selectImages(max_rounds, players) {
     Object.values(players).map((item) => item["name"])
   );
 
-  const image_ids = response.map((element) => element.filename);
-
   // Randomly select images according to max_rounds
-  const selected_image_ids = getRandomElements(image_ids, max_rounds);
-
-  return selected_image_ids;
+  const selected_images = getRandomElements(response, max_rounds);
+  return selected_images;
 }
