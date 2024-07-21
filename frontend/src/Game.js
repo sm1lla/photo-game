@@ -48,7 +48,8 @@ function Game() {
         max_rounds: gameInfo.max_rounds,
         image_file_names: gameInfo.image_file_names,
       }));
-
+      setGameStarted(true)
+      setSecondsPassed(0)
       await setNewImage(gameInfo.image_file_names, gameState.current_round);
     });
 
@@ -170,9 +171,9 @@ function Game() {
         <div>
           <h1>Scores</h1>
           <ul className="scoreList">
-            {Object.keys(scores).map((player_name) => (
-              <li key={player_name}>
-                {player_name + ": \t" + scores[player_name]}
+            {Object.keys(scores).map((playerKey) => (
+              <li key={playerKey}>
+                {players[playerKey].name + ": \t" + scores[playerKey]}
               </li>
             ))}
           </ul>

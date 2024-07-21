@@ -8,7 +8,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // React app address
+    origin: ["http://localhost:3000", "http://localhost:3001"], // React app address
     methods: ["GET", "POST"],
   },
 });
@@ -35,8 +35,8 @@ function allVoted() {
 
 function get_scores() {
   const scores = {};
-  Object.values(gameState.players).map((player) => {
-    scores[player.name] = player.score;
+  Object.keys(gameState.players).map((key) => {
+    scores[key] = gameState.players[key].score;
   });
   return scores;
 }
@@ -46,8 +46,8 @@ io.on("connection", (socket) => {
   console.log(gameState);
 
   socket.on("userInfo", (user) => {
-    gameState.players[socket.id] = { name: user.name, score: 0, voted: false };
-    socket.emit("currentPlayers", gameState.players);
+    gameState.players[socket.id.toString()] = { name: user.name, score: 0, voted: false };
+    io.emit("currentPlayers", gameState.players);
   });
 
   socket.on("startGame", async () => {
@@ -101,7 +101,7 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     delete gameState.players[socket.id];
-    io.emit("playerDisconnected", socket.id);
+    io.emit("currentPlayers", gameState.players);
     console.log("A user disconnected:", socket.id);
   });
 });
