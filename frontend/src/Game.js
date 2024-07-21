@@ -17,6 +17,7 @@ function Game() {
   const [voteSelected, setVoteSelected] = useState("");
   const [secondsPassed, setSecondsPassed] = React.useState(0);
   const [gameStarted, setGameStarted] = React.useState(false);
+  const [scores, setScores] = React.useState({});
 
   const startTime = 10;
   const timeLeft =
@@ -40,7 +41,7 @@ function Game() {
       setImage(newImage);
     };
 
-    socket.on("gameStarted", (gameInfo) => {
+    socket.on("gameStarted", async (gameInfo) => {
       // set gameState
       setGameState((previousState) => ({
         ...previousState,
@@ -48,7 +49,7 @@ function Game() {
         image_file_names: gameInfo.image_file_names,
       }));
 
-      setNewImage(gameInfo.image_file_names, gameState.current_round);
+      await setNewImage(gameInfo.image_file_names, gameState.current_round);
     });
 
     socket.on("vote_response", (response) => {
@@ -70,11 +71,17 @@ function Game() {
       );
     });
 
+    socket.on("scores", (score_response) => {
+      setScores(score_response);
+      setGameStarted(false);
+    });
+
     return () => {
       socket.off("currentPlayers");
       socket.off("gameStarted");
       socket.off("vote_response");
       socket.off("next");
+      socket.off("scores");
     };
   }, [gameState, voteSelected]);
 
@@ -103,12 +110,25 @@ function Game() {
     setGameStarted(true);
   };
 
+  const endGame = () => {
+    setScores({});
+  };
+
+  const customButtonColor = (player_name) => {
+    if (player_name == voteSelected) return "#47a4bd";
+    else return "#61dafb";
+  };
+
   return (
     <div className="Game">
       {gameStarted ? (
         <header className="Game-header">
           {image ? (
-            <img src={`data:image/jpeg;base64,${image}`} alt="" />
+            <img
+              src={`data:image/jpeg;base64,${image}`}
+              className="image"
+              alt=""
+            />
           ) : (
             <p>Loading...</p>
           )}
@@ -116,6 +136,7 @@ function Game() {
           <div className="button-container">
             {Object.values(players).map((player) => (
               <button
+                style={{ backgroundColor: customButtonColor }}
                 key={player.name}
                 onClick={() => voteForPlayer(player.name)}
               >
@@ -132,7 +153,7 @@ function Game() {
             {"Next image"}
           </button>
         </header>
-      ) : (
+      ) : Object.keys(scores).length === 0 ? (
         <div className="LobbyScreen">
           <h1>Lobby</h1>
           <h2>Current players:</h2>
@@ -143,6 +164,20 @@ function Game() {
           </ul>
           <button key={"start"} onClick={startGame}>
             {"Start game!"}
+          </button>
+        </div>
+      ) : (
+        <div>
+          <h1>Scores</h1>
+          <ul className="scoreList">
+            {Object.keys(scores).map((player_name) => (
+              <li key={player_name}>
+                {player_name + ": \t" + scores[player_name]}
+              </li>
+            ))}
+          </ul>
+          <button key={"return"} onClick={endGame}>
+            Return
           </button>
         </div>
       )}

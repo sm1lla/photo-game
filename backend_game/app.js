@@ -17,26 +17,36 @@ app.use(cors()); // Enable CORS
 
 const gameState = {
   current_round: 0,
-  max_rounds: 5,
+  max_rounds: 1,
   image_data: [], // Format:  {filename: "image_file.jpg", user: "examplePlayer1"}
   players: {
-    1: { name: "examplePlayer1", score: 0, voted: true},
+    1: { name: "examplePlayer1", score: 0, voted: true },
     2: { name: "examplePlayer2", score: 0, voted: true },
     3: { name: "examplePlayer3", score: 0, voted: true },
   },
 };
 
-const allVoted = () => {
-  players_voted = Object.values(gameState.players).map((player => player.voted))
-  return players_voted.every(Boolean)
-  }
+function allVoted() {
+  const players_voted = Object.values(gameState.players).map(
+    (player) => player.voted
+  );
+  return players_voted.every(Boolean);
+}
+
+function get_scores() {
+  const scores = {};
+  Object.values(gameState.players).map((player) => {
+    scores[player.name] = player.score;
+  });
+  return scores;
+}
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
   console.log(gameState);
 
   socket.on("userInfo", (user) => {
-    gameState.players[socket.id] = { name: user.name, score : 0, voted : false};
+    gameState.players[socket.id] = { name: user.name, score: 0, voted: false };
     socket.emit("currentPlayers", gameState.players);
   });
 
@@ -56,29 +66,36 @@ io.on("connection", (socket) => {
 
   socket.on("vote", (user_id) => {
     let correct_answer;
-    try{
+    try {
       correct_answer = gameState.image_data[gameState.current_round]["user"];
     } catch {
-      correct_answer = "No answer found."
+      correct_answer = "No answer found.";
     }
-    console.log("correct_answer", correct_answer)
-    console.log("voted", user_id)
-    const response = {answer : correct_answer};
-    
-    if(user_id == correct_answer) {
+    console.log("correct_answer", correct_answer);
+    console.log("voted", user_id);
+    const response = { answer: correct_answer };
+
+    if (user_id == correct_answer) {
       gameState.players[socket.id].score += 1;
     }
-    gameState.players[socket.id].voted = true 
+    gameState.players[socket.id].voted = true;
     socket.emit("vote_response", response);
   });
 
   socket.on("next", () => {
-    if(allVoted) {
+    console.log(gameState);
+    if (allVoted()) {
       Object.keys(gameState.players).forEach((key) => {
-        gameState.players[key].voted = false
-      })
-      gameState.current_round += 1
-      io.emit("next")
+        if (!["1", "2", "3"].includes(key))
+          gameState.players[key].voted = false;
+      });
+      if (gameState.current_round + 1 == gameState.max_rounds) {
+        gameState.current_round = 0;
+        io.emit("scores", get_scores());
+      } else {
+        gameState.current_round += 1;
+        io.emit("next");
+      }
     }
   });
 
