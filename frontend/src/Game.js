@@ -18,6 +18,7 @@ function Game() {
   const [secondsPassed, setSecondsPassed] = React.useState(0);
   const [gameStarted, setGameStarted] = React.useState(false);
   const [scores, setScores] = React.useState({});
+  const [correctAnswer, setCorrectAnswer] = React.useState("")
 
   const startTime = 10;
   const timeLeft =
@@ -54,6 +55,7 @@ function Game() {
     });
 
     socket.on("vote_response", (response) => {
+      setCorrectAnswer(response.answer)
       if (response.answer === voteSelected)
         console.log("Correct.", response.answer);
       else console.log("Incorrect.", response.answer);
@@ -68,6 +70,7 @@ function Game() {
         () => {
           setSecondsPassed(0);
           setVoteSelected("");
+          setCorrectAnswer("");
         }
       );
     });
@@ -116,8 +119,14 @@ function Game() {
   };
 
   const customButtonColor = (player_name) => {
-    if (player_name == voteSelected) return "#47a4bd";
-    else return "#61dafb";
+    if(correctAnswer == "") {
+      if(player_name == voteSelected) return "#4ba9c3"
+      else return "#61dafb"
+    } else {
+      if(player_name == correctAnswer) return "green"
+      else if(player_name == voteSelected) return "red"
+      else return "#61dafb"
+    }
   };
 
   return (
@@ -137,7 +146,7 @@ function Game() {
           <div className="button-container">
             {Object.values(players).map((player) => (
               <button
-                style={{ backgroundColor: customButtonColor }}
+                style={{ backgroundColor: customButtonColor(player.name) }}
                 key={player.name}
                 onClick={() => voteForPlayer(player.name)}
               >
