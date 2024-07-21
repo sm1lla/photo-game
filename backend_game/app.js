@@ -20,27 +20,27 @@ const gameState = {
   max_rounds: 5,
   image_data: [], // Format:  {filename: "image_file.jpg", user: "examplePlayer1"}
   players: {
-    1: { name: "examplePlayer1", score: 0 },
-    2: { name: "examplePlayer2", score: 0 },
-    3: { name: "examplePlayer3", score: 0 },
-    4: { name: "examplePlayer4", score: 0 },
-    5: { name: "examplePlayer5", score: 0 },
+    1: { name: "examplePlayer1", score: 0, voted: true},
+    2: { name: "examplePlayer2", score: 0, voted: true },
+    3: { name: "examplePlayer3", score: 0, voted: true },
   },
 };
 
+const allVoted = () => {
+  players_voted = Object.values(gameState.players).map((player => player.voted))
+  return players_voted.every(Boolean)
+  }
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
   console.log(gameState);
 
   socket.on("userInfo", (user) => {
-    gameState.players[socket.id] = { name: user.name, score : 0};
+    gameState.players[socket.id] = { name: user.name, score : 0, voted : false};
     socket.emit("currentPlayers", gameState.players);
   });
 
   socket.on("startGame", async () => {
-    gameState.current_round = 1;
-
     // Select images for current round
     gameState.image_data = await selectImages(
       gameState.max_rounds,
@@ -55,13 +55,31 @@ io.on("connection", (socket) => {
   });
 
   socket.on("vote", (user_id) => {
-    const correct_answer = gameState.image_data[gameState.current_round - 1]["user"];
+    let correct_answer;
+    try{
+      correct_answer = gameState.image_data[gameState.current_round]["user"];
+    } catch {
+      correct_answer = "No answer found."
+    }
+    console.log("correct_answer", correct_answer)
+    console.log("voted", user_id)
     const response = {answer : correct_answer};
     
     if(user_id == correct_answer) {
       gameState.players[socket.id].score += 1;
     }
-    io.emit("vote_response", response);
+    gameState.players[socket.id].voted = true 
+    socket.emit("vote_response", response);
+  });
+
+  socket.on("next", () => {
+    if(allVoted) {
+      Object.keys(gameState.players).forEach((key) => {
+        gameState.players[key].voted = false
+      })
+      gameState.current_round += 1
+      io.emit("next")
+    }
   });
 
   socket.on("disconnect", () => {

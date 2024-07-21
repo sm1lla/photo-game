@@ -16,9 +16,11 @@ function Game() {
   });
   const [voteSelected, setVoteSelected] = useState("");
   const [secondsPassed, setSecondsPassed] = React.useState(0);
+  const [gameStarted, setGameStarted] = React.useState(false);
 
-  const startTime = 30;
-  const timeLeft = startTime - secondsPassed;
+  const startTime = 10;
+  const timeLeft =
+    startTime - secondsPassed >= 0 ? startTime - secondsPassed : 0;
 
   const countdown = `00:${timeLeft.toLocaleString("en-US", {
     minimumIntegerDigits: 2,
@@ -33,7 +35,12 @@ function Game() {
       setPlayers(players);
     });
 
-    socket.on("gameStarted", async (gameInfo) => {
+    const setNewImage = async (image_file_names, current_round) => {
+      const newImage = await get_current_image(image_file_names[current_round]);
+      setImage(newImage);
+    };
+
+    socket.on("gameStarted", (gameInfo) => {
       // set gameState
       setGameState((previousState) => ({
         ...previousState,
@@ -41,10 +48,7 @@ function Game() {
         image_file_names: gameInfo.image_file_names,
       }));
 
-      const newImage = await get_current_image(
-        gameInfo.image_file_names[gameState.current_round]
-      );
-      setImage(newImage);
+      setNewImage(gameInfo.image_file_names, gameState.current_round);
     });
 
     socket.on("vote_response", (response) => {
@@ -53,58 +57,95 @@ function Game() {
       else console.log("Incorrect.", response.answer);
     });
 
+    socket.on("next", () => {
+      setGameState((previousState) => ({
+        ...previousState,
+        current_round: gameState.current_round + 1,
+      }));
+      setNewImage(gameState.image_file_names, gameState.current_round + 1).then(
+        () => {
+          setSecondsPassed(0);
+          setVoteSelected("");
+        }
+      );
+    });
+
     return () => {
       socket.off("currentPlayers");
       socket.off("gameStarted");
       socket.off("vote_response");
+      socket.off("next");
     };
   }, [gameState, voteSelected]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setSecondsPassed((sp) => {
-        if (sp >= startTime) {
-          return sp;
+        if (sp >= startTime && gameStarted) {
+          if (sp === startTime) {
+            socket.emit("vote", voteSelected);
+          }
         }
-        return sp + 1
+        return sp + 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [voteSelected, gameStarted]);
 
   const voteForPlayer = (player_name) => {
-    setVoteSelected(player_name);
-    socket.emit("vote", player_name);
+    console.log("Voted for:", player_name);
+    if (voteSelected == "") setVoteSelected(player_name);
   };
 
   const startGame = () => {
     socket.emit("startGame");
     setSecondsPassed(0);
-  }
- 
+    setGameStarted(true);
+  };
+
   return (
     <div className="Game">
-      <header className="Game-header">
-        {image ? (
-          <img src={`data:image/jpeg;base64,${image}`} alt="" />
-        ) : (
-          <p>Loading...</p>
-        )}
-        <div className="button-container">
-          {Object.values(players).map((player) => (
-            <button
-              key={player.name}
-              onClick={() => voteForPlayer(player.name)}
-            >
-              {player.name}
-            </button>
-          ))}
+      {gameStarted ? (
+        <header className="Game-header">
+          {image ? (
+            <img src={`data:image/jpeg;base64,${image}`} alt="" />
+          ) : (
+            <p>Loading...</p>
+          )}
+          <p className="counter">{gameStarted ? countdown : ""}</p>
+          <div className="button-container">
+            {Object.values(players).map((player) => (
+              <button
+                key={player.name}
+                onClick={() => voteForPlayer(player.name)}
+              >
+                {player.name}
+              </button>
+            ))}
+          </div>
+          <button
+            key={"next"}
+            onClick={() => {
+              socket.emit("next");
+            }}
+          >
+            {"Next image"}
+          </button>
+        </header>
+      ) : (
+        <div className="LobbyScreen">
+          <h1>Lobby</h1>
+          <h2>Current players:</h2>
+          <ul className="playerList">
+            {Object.values(players).map((player) => (
+              <li key={player.name}>{player.name}</li>
+            ))}
+          </ul>
+          <button key={"start"} onClick={startGame}>
+            {"Start game!"}
+          </button>
         </div>
-        <button key={"start"} onClick={startGame}>
-          {"START GAME!"}
-        </button>
-      </header>
-      <p>{countdown}</p>
+      )}
     </div>
   );
 }

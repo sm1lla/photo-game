@@ -31,6 +31,12 @@
   justify-content: center;
 }
 
+.playerList {
+  list-style-type: none;
+  padding: 0;
+}
+
+
 button {
   background-color: #61dafb;
   border: none;
