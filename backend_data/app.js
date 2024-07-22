@@ -2,12 +2,17 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient } = require("mongodb");
 const bodyParser = require("body-parser");
+const multer = require('multer');
 
 const app = express();
 const port = 3005;
 
 app.use(bodyParser.json());
 app.use(cors()); // Enable CORS
+
+// Set up multer for file upload
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const database_url =
   "mongodb+srv://admin:CfM9V4fsKUJN@clusterapiproject.v2jf5ss.mongodb.net/?retryWrites=true&w=majority&appName=ClusterAPIProject";
@@ -28,6 +33,15 @@ async function run() {
 }
 run().then(console.log("Connected to database."));
 
+
+async function uploadImage(file) {
+  const collection = database.collection("test_photos");
+  const base64Image = file.buffer.toString('base64');
+
+    await collection.insertOne({ filename: file.originalname, image: base64Image, user: "test"});
+
+    console.log('Image has been uploaded to MongoDB.');
+}
 
 async function loadImage(file_name) {
   const collection = database.collection("test_photos");
@@ -73,6 +87,17 @@ app.get("/api/image_ids/:ids", async (req, res) => {
       res.status(404).send("Error retrieving image.");
     });
 });
+
+app.post('/api/images/upload', upload.single('file'), async (req, res) => {
+  try {
+    console.log(req.originalname)
+    uploadImage(req.file)
+    res.status(201).send('Image uploaded successfully');
+  } catch (error) {
+    res.status(500).send('Error uploading image');
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);

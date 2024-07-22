@@ -2,6 +2,7 @@ import "./Game.css";
 import React, { useEffect, useState } from "react";
 import io from "socket.io-client";
 import { get_current_image } from "./services/get_image";
+import FileUpload from './FileUpload';
 
 const socket = io("http://localhost:3002");
 
@@ -203,6 +204,10 @@ function Game() {
             />
             <button className="submitButton" type="submit">Submit</button>
             </form>
+            <div>
+            <h4>Multiple Image Upload</h4>
+            <FileUpload />
+          </div>
             </div>
         </div>
       ) : (
@@ -215,11 +220,9 @@ function Game() {
               </li>
             ))}
           </ul>
-          <div>
           <button key={"return"} onClick={endGame}>
             Return
           </button>
-          </div>
         </div>
       )}
     </div>

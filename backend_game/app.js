@@ -17,7 +17,7 @@ app.use(cors()); // Enable CORS
 
 const gameState = {
   current_round: 0,
-  max_rounds: 3,
+  max_rounds: 4,
   image_data: [], // Format:  {filename: "image_file.jpg", user: "examplePlayer1"}
   players: {
     1: { name: "examplePlayer1", score: 0, voted: true },
