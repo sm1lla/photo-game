@@ -43,7 +43,6 @@ function get_scores() {
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
-  socket.emit("welcome");
 
   socket.on("userInfo", (user) => {
     gameState.players[String(socket.id)] = {

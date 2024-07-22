@@ -4,9 +4,9 @@ import io from "socket.io-client";
 import { get_current_image } from "./services/get_image";
 
 const socket = io("http://localhost:3002");
-const user = { name: "User" };
 
 function Game() {
+  const [user, setUser] = useState({ name: "" })
   const [players, setPlayers] = useState({});
   const [image, setImage] = useState({});
   const [gameState, setGameState] = useState({
@@ -30,9 +30,6 @@ function Game() {
 
   useEffect(() => {
     // handle socket events here
-    socket.on("welcome", () => {
-      socket.emit("userInfo", user);
-    });
 
     socket.on("currentPlayers", (players) => {
       // set players
@@ -139,6 +136,16 @@ function Game() {
     }
   };
 
+  const handleSubmitName = (event) => {
+    event.preventDefault();
+    socket.emit("userInfo", user)
+    console.log("submitted: ", user.name)
+  };
+
+  const handleChangeName = (event) => {
+    setUser({ name: event.target.value });
+  };
+
   return (
     <div className="Game">
       {gameStarted ? (
@@ -185,6 +192,18 @@ function Game() {
           <button key={"start"} onClick={startGame}>
             {"Start game!"}
           </button>
+          <div className="formContainer">
+          <form onSubmit={handleSubmitName}>
+            <input
+              className="inputField"
+              type="text"
+              value={user.name}
+              onChange={handleChangeName}
+              placeholder="Enter user name"
+            />
+            <button className="submitButton" type="submit">Submit</button>
+            </form>
+            </div>
         </div>
       ) : (
         <div>
@@ -196,9 +215,11 @@ function Game() {
               </li>
             ))}
           </ul>
+          <div>
           <button key={"return"} onClick={endGame}>
             Return
           </button>
+          </div>
         </div>
       )}
     </div>
