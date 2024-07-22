@@ -8,7 +8,7 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000", // React app address
+    origin: ["http://localhost:3000", "http://localhost:3001"], // React app address
     methods: ["GET", "POST"],
   },
 });
@@ -17,30 +17,44 @@ app.use(cors()); // Enable CORS
 
 const gameState = {
   current_round: 0,
-  max_rounds: 5,
+  max_rounds: 4,
   image_data: [], // Format:  {filename: "image_file.jpg", user: "examplePlayer1"}
   players: {
-    1: { name: "examplePlayer1", score: 0 },
-    2: { name: "examplePlayer2", score: 0 },
-    3: { name: "examplePlayer3", score: 0 },
-    4: { name: "examplePlayer4", score: 0 },
-    5: { name: "examplePlayer5", score: 0 },
+    1: { name: "examplePlayer1", score: 0, voted: true },
+    2: { name: "examplePlayer2", score: 0, voted: true },
+    3: { name: "examplePlayer3", score: 0, voted: true },
   },
 };
 
+function allVoted() {
+  const players_voted = Object.values(gameState.players).map(
+    (player) => player.voted
+  );
+  return players_voted.every(Boolean);
+}
+
+function get_scores() {
+  const scores = {};
+  Object.keys(gameState.players).map((key) => {
+    scores[key] = gameState.players[key].score;
+  });
+  return scores;
+}
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
-  console.log(gameState);
 
   socket.on("userInfo", (user) => {
-    gameState.players[socket.id] = { name: user.name, score : 0};
-    socket.emit("currentPlayers", gameState.players);
+    gameState.players[String(socket.id)] = {
+      name: user.name,
+      score: 0,
+      voted: false,
+    };
+    io.emit("currentPlayers", gameState.players);
+    console.log(gameState)
   });
 
   socket.on("startGame", async () => {
-    gameState.current_round = 1;
-
     // Select images for current round
     gameState.image_data = await selectImages(
       gameState.max_rounds,
@@ -55,18 +69,47 @@ io.on("connection", (socket) => {
   });
 
   socket.on("vote", (user_id) => {
-    const correct_answer = gameState.image_data[gameState.current_round - 1]["user"];
-    const response = {answer : correct_answer};
-    
-    if(user_id == correct_answer) {
-      gameState.players[socket.id].score += 1;
+    if (!gameState.players[socket.id].voted) {
+      let correct_answer;
+      try {
+        correct_answer = gameState.image_data[gameState.current_round]["user"];
+      } catch {
+        correct_answer = "No answer found.";
+      }
+      console.log("correct_answer", correct_answer);
+      console.log("voted", user_id);
+      const response = { answer: correct_answer };
+
+      if (user_id === correct_answer) {
+        gameState.players[socket.id].score = gameState.players[socket.id].score + 1;
+      }
+      gameState.players[socket.id].voted = true;
+      socket.emit("vote_response", response);
     }
-    io.emit("vote_response", response);
+  });
+
+  socket.on("next", () => {
+    if (allVoted()) {
+      Object.keys(gameState.players).forEach((key) => {
+        if (!["1", "2", "3"].includes(key))
+          gameState.players[key].voted = false;
+      });
+      if (gameState.current_round + 1 == gameState.max_rounds) {
+        gameState.current_round = 0;
+        io.emit("scores", get_scores());
+        Object.keys(gameState.players).forEach((key) => {
+          gameState.players[key].score = 0;
+        });
+      } else {
+        gameState.current_round += 1;
+        io.emit("next");
+      }
+    }
   });
 
   socket.on("disconnect", () => {
     delete gameState.players[socket.id];
-    io.emit("playerDisconnected", socket.id);
+    io.emit("currentPlayers", gameState.players);
     console.log("A user disconnected:", socket.id);
   });
 });

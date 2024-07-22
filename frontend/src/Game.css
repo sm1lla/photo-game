@@ -17,7 +17,7 @@
 }
 
 .image {
-  width: 300px;
+  width: 500px;
   height: auto;
   margin-bottom: 20px;
   border-radius: 8px;
@@ -29,6 +29,29 @@
   gap: 10px;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+.playerList {
+  list-style-type: none;
+  padding: 0;
+}
+
+.inputField {
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+
+.formContainer {
+  padding: 20px;
+}
+
+.submitButton {
+  margin: 10px;
+  background-color: #b1d5e0;
+
 }
 
 button {
