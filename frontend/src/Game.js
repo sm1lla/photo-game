@@ -30,7 +30,9 @@ function Game() {
 
   useEffect(() => {
     // handle socket events here
-    socket.emit("userInfo", user);
+    socket.on("welcome", () => {
+      socket.emit("userInfo", user);
+    });
 
     socket.on("currentPlayers", (players) => {
       // set players
@@ -81,6 +83,7 @@ function Game() {
     });
 
     return () => {
+      socket.off("welcome");
       socket.off("currentPlayers");
       socket.off("gameStarted");
       socket.off("vote_response");
@@ -116,6 +119,13 @@ function Game() {
 
   const endGame = () => {
     setScores({});
+    setVoteSelected("")
+    setCorrectAnswer("")
+    setGameState({
+      current_round: 0,
+      max_rounds: 0,
+      image_file_names: [],
+    })
   };
 
   const customButtonColor = (player_name) => {

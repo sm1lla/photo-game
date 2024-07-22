@@ -17,7 +17,7 @@ app.use(cors()); // Enable CORS
 
 const gameState = {
   current_round: 0,
-  max_rounds: 1,
+  max_rounds: 3,
   image_data: [], // Format:  {filename: "image_file.jpg", user: "examplePlayer1"}
   players: {
     1: { name: "examplePlayer1", score: 0, voted: true },
@@ -43,11 +43,16 @@ function get_scores() {
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
-  console.log(gameState);
+  socket.emit("welcome");
 
   socket.on("userInfo", (user) => {
-    gameState.players[socket.id.toString()] = { name: user.name, score: 0, voted: false };
+    gameState.players[String(socket.id)] = {
+      name: user.name,
+      score: 0,
+      voted: false,
+    };
     io.emit("currentPlayers", gameState.players);
+    console.log(gameState)
   });
 
   socket.on("startGame", async () => {
@@ -65,25 +70,26 @@ io.on("connection", (socket) => {
   });
 
   socket.on("vote", (user_id) => {
-    let correct_answer;
-    try {
-      correct_answer = gameState.image_data[gameState.current_round]["user"];
-    } catch {
-      correct_answer = "No answer found.";
-    }
-    console.log("correct_answer", correct_answer);
-    console.log("voted", user_id);
-    const response = { answer: correct_answer };
+    if (!gameState.players[socket.id].voted) {
+      let correct_answer;
+      try {
+        correct_answer = gameState.image_data[gameState.current_round]["user"];
+      } catch {
+        correct_answer = "No answer found.";
+      }
+      console.log("correct_answer", correct_answer);
+      console.log("voted", user_id);
+      const response = { answer: correct_answer };
 
-    if (user_id == correct_answer) {
-      gameState.players[socket.id].score += 1;
+      if (user_id === correct_answer) {
+        gameState.players[socket.id].score = gameState.players[socket.id].score + 1;
+      }
+      gameState.players[socket.id].voted = true;
+      socket.emit("vote_response", response);
     }
-    gameState.players[socket.id].voted = true;
-    socket.emit("vote_response", response);
   });
 
   socket.on("next", () => {
-    console.log(gameState);
     if (allVoted()) {
       Object.keys(gameState.players).forEach((key) => {
         if (!["1", "2", "3"].includes(key))
@@ -92,6 +98,9 @@ io.on("connection", (socket) => {
       if (gameState.current_round + 1 == gameState.max_rounds) {
         gameState.current_round = 0;
         io.emit("scores", get_scores());
+        Object.keys(gameState.players).forEach((key) => {
+          gameState.players[key].score = 0;
+        });
       } else {
         gameState.current_round += 1;
         io.emit("next");
