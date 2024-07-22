@@ -206,7 +206,7 @@ function Game() {
             </form>
             <div>
             <h4>Multiple Image Upload</h4>
-            <FileUpload />
+            <FileUpload user_name={user.name}/>
           </div>
             </div>
         </div>

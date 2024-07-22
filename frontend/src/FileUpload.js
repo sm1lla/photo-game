@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { send_image } from './services/send_image';
 
-const FileUpload = () => {
+function FileUpload({user_name}) {
   const [selectedFiles, setSelectedFiles] = useState([]);
-
+  console.log("The user name is", user_name)
   const handleFileChange = (event) => {
     setSelectedFiles([...event.target.files]);
   };
@@ -11,7 +11,7 @@ const FileUpload = () => {
   const handleUpload = () => {
     // Handle the file upload logic here
     console.log('Files to upload:', selectedFiles[0]);
-    send_image(selectedFiles[0])
+    send_image(selectedFiles[0], user_name)
   };
 
   return (

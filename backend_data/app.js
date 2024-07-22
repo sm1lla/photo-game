@@ -34,11 +34,11 @@ async function run() {
 run().then(console.log("Connected to database."));
 
 
-async function uploadImage(file) {
+async function uploadImage(file, user_name) {
   const collection = database.collection("test_photos");
   const base64Image = file.buffer.toString('base64');
 
-    await collection.insertOne({ filename: file.originalname, image: base64Image, user: "test"});
+    await collection.insertOne({ filename: file.originalname, image: base64Image, user: user_name});
 
     console.log('Image has been uploaded to MongoDB.');
 }
@@ -91,7 +91,8 @@ app.get("/api/image_ids/:ids", async (req, res) => {
 app.post('/api/images/upload', upload.single('file'), async (req, res) => {
   try {
     console.log(req.originalname)
-    uploadImage(req.file)
+    console.log(req.body.user_name)
+    uploadImage(req.file, req.body.user_name)
     res.status(201).send('Image uploaded successfully');
   } catch (error) {
     res.status(500).send('Error uploading image');
