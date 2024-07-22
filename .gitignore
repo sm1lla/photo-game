@@ -6,6 +6,7 @@ backend_data/node_modules
 backend_game/node_modules
 frontend/my-app/node_modules
 frontend/node_modules
+node_modules
 /.pnp
 .pnp.js
 
