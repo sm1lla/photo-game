@@ -21,7 +21,7 @@ function Game() {
   const [scores, setScores] = React.useState({});
   const [correctAnswer, setCorrectAnswer] = React.useState("")
 
-  const startTime = 10;
+  const startTime = 5;
   const timeLeft =
     startTime - secondsPassed >= 0 ? startTime - secondsPassed : 0;
 

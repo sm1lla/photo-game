@@ -11,8 +11,8 @@ function App() {
 			<header className="App-header">
 			<Router>
 					<Routes>
-					<Route path="/game" element={<Game></Game>} />
 					<Route path="/" element={<GoogleLogin></GoogleLogin>} />
+					<Route path="/game" element={<Game></Game>} />
 					</Routes>
 			</Router>
 			</header>
